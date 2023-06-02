@@ -1,21 +1,33 @@
 import re
 
 persian_leters = '''ءاآبپتثجچحخدذرزژسشصضطظعغفقکگلمنوهیئ'''
-countainer_xpath = '//*[@id="page-content"]/div/div/div[1]/div/ul'
+words_countainer_xpath = '//*[@id="page-content"]/div/div/div[1]/div/ul'
 english_word_xpath = '//*[@id="page-content"]/div/div/div[1]/div/ul/li[{num}]/div/div[1]/a/div'
 mean_xpath = '//*[@id="page-content"]/div/div/div[1]/div/ul/li[{num}]/div/div[2]'
+
+url_countainer_xpath = '//*[@id="page-content"]/div/div'
+url_xpath = '//*[@id="page-content"]/div/div/div[{num}]/div/div[3]/a'
+
+_web_driver_cache = None
+
+def _get_web_driver ():
+    global _web_driver_cache
+    if _web_driver_cache :
+        return _web_driver_cache
+    from selenium import webdriver
+    print('    opening webdriver...')
+    _web_driver_cache = webdriver.Chrome()
+    return _web_driver_cache
 
 
 def get_data (*biamouz_urls:str):
     data = []
-    from selenium import webdriver
-    print('    opening webdriver...')
-    driver = webdriver.Chrome()
+    driver = _get_web_driver()
     for url in biamouz_urls:
         print(f'    opening {url}:')
         driver.get(url)
         print(f'    fetching {url}:')
-        countainer_el = driver.find_element(by='xpath', value=countainer_xpath)
+        countainer_el = driver.find_element(by='xpath', value=words_countainer_xpath)
         words_num = countainer_el.find_elements(by='tag name', value='li').__len__()
         for num in range(1,words_num+1):
             eng  = driver.find_element(by='xpath', value=english_word_xpath.format(num=num)).text
@@ -28,6 +40,24 @@ def get_data (*biamouz_urls:str):
             data.append((eng,mean))
         print()
     return data
+
+
+def fetch_countainer (url):
+    driver = _get_web_driver()
+    
+    print(f'    opening {url} for find urls')
+    driver.get(url)
+    
+    urls = []
+    urls_num = driver.find_elements(by='xpath', value=url_countainer_xpath+'/*').__len__()
+    for num in range(1,urls_num+1):
+        url_el = driver.find_element(by='xpath',value=url_xpath.format(num=num))
+        _url = url_el.get_attribute('href')
+        print(f'        Found {num} urls', end='\r')
+
+        urls.append(_url)
+    print()
+    return urls
 
 
 
